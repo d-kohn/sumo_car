@@ -23,7 +23,7 @@ ApplicationFunctionSet Application_FunctionSet;
 
 /*Hardware device object list*/
 MPU6050_getdata AppMPU6050getdata;
-DeviceDriverSet_RBGLED AppRBG_LED;
+// DeviceDriverSet_RBGLED AppRBG_LED;
 DeviceDriverSet_Key AppKey;
 DeviceDriverSet_ITR20001 AppITR20001;
 DeviceDriverSet_Voltage AppVoltage;
@@ -109,7 +109,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Init(void)
   AppMotor.DeviceDriverSet_Motor_Init();
   AppServo.DeviceDriverSet_Servo_Init(90);
   AppKey.DeviceDriverSet_Key_Init();
-  AppRBG_LED.DeviceDriverSet_RBGLED_Init(20);
+  // AppRBG_LED.DeviceDriverSet_RBGLED_Init(20);
   AppIRrecv.DeviceDriverSet_IRrecv_Init();
   AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Init();
   AppITR20001.DeviceDriverSet_ITR20001_Init();
@@ -121,6 +121,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Init(void)
   //   /*Clear serial port buffer...*/
   // }
   Application_SmartRobotCarxxx0.Functional_Mode = Standby_mode;
+  setup();
 }
 
 /*ITR20001 Check if the car leaves the ground*/
@@ -378,342 +379,12 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Bootup(void)
   Application_SmartRobotCarxxx0.Functional_Mode = Standby_mode;
 }
 
-static void CMD_Lighting(uint8_t is_LightingSequence, int8_t is_LightingColorValue_R, uint8_t is_LightingColorValue_G, uint8_t is_LightingColorValue_B)
-{
-  switch (is_LightingSequence)
-  {
-  case 0:
-    AppRBG_LED.DeviceDriverSet_RBGLED_Color(NUM_LEDS, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
-    break;
-  case 1: /*Left*/
-    AppRBG_LED.DeviceDriverSet_RBGLED_Color(3, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
-    break;
-  case 2: /*Forward*/
-    AppRBG_LED.DeviceDriverSet_RBGLED_Color(2, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
-    break;
-  case 3: /*Right*/
-    AppRBG_LED.DeviceDriverSet_RBGLED_Color(1, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
-    break;
-  case 4: /*Back*/
-    AppRBG_LED.DeviceDriverSet_RBGLED_Color(0, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
-    break;
-  case 5: /*Middle*/
-    AppRBG_LED.DeviceDriverSet_RBGLED_Color(4, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
-    break;
-  default:
-    break;
-  }
-}
-
-/*RBG_LED set*/
-void ApplicationFunctionSet::ApplicationFunctionSet_RGB(void)
-{
-  static unsigned long getAnalogue_time = 0;
-  FastLED.clear(true);
-  if (true == VoltageDetectionStatus) //Act on low power state？
-  {
-    if ((millis() - getAnalogue_time) > 3000)
-    {
-      getAnalogue_time = millis();
-    }
-  }
-  unsigned long temp = millis() - getAnalogue_time;
-  if (function_xxx((temp), 0, 500) && VoltageDetectionStatus == true)
-  {
-    switch (temp)
-    {
-    case /* constant-expression */ 0 ... 49:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-      break;
-    case /* constant-expression */ 50 ... 99:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Black);
-      break;
-    case /* constant-expression */ 100 ... 149:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-      break;
-    case /* constant-expression */ 150 ... 199:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Black);
-      break;
-    case /* constant-expression */ 200 ... 249:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-      break;
-    case /* constant-expression */ 250 ... 299:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-      break;
-    case /* constant-expression */ 300 ... 349:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Black);
-      break;
-    case /* constant-expression */ 350 ... 399:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-      break;
-    case /* constant-expression */ 400 ... 449:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Black);
-      break;
-    case /* constant-expression */ 450 ... 499:
-      /* code */
-      AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-      break;
-    default:
-      break;
-    }
-  }
-  else if (((function_xxx((temp), 500, 3000)) && VoltageDetectionStatus == true) || VoltageDetectionStatus == false)
-  {
-    switch (Application_SmartRobotCarxxx0.Functional_Mode) //Act on mode control sequence
-    {
-    case /* constant-expression */ Standby_mode:
-      /* code */
-      {
-        if (VoltageDetectionStatus == true)
-        {
-          AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Red);
-          delay(30);
-          AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Black);
-          delay(30);
-        }
-        else
-        {
-          static uint8_t setBrightness = 0;
-          static boolean et = false;
-          static unsigned long time = 0;
-
-          if ((millis() - time) > 10)
-          {
-            time = millis();
-            if (et == false)
-            {
-              setBrightness += 1;
-              if (setBrightness == 100)
-                et = true;
-            }
-            else if (et == true)
-            {
-              setBrightness -= 1;
-              if (setBrightness == 0)
-                et = false;
-            }
-          }
-          // AppRBG_LED.leds[1] = CRGB::Blue;
-          AppRBG_LED.leds[0] = CRGB::Violet;
-          FastLED.setBrightness(setBrightness);
-          FastLED.show();
-        }
-      }
-      break;
-    case /* constant-expression */ CMD_Programming_mode:
-      /* code */
-      {
-      }
-      break;
-    case /* constant-expression */ TraceBased_mode:
-      /* code */
-      {
-        AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Green);
-      }
-      break;
-    case /* constant-expression */ ObstacleAvoidance_mode:
-      /* code */
-      {
-        AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Yellow);
-      }
-      break;
-    case /* constant-expression */ Follow_mode:
-      /* code */
-      {
-        AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Blue);
-      }
-      break;
-    case /* constant-expression */ Rocker_mode:
-      /* code */
-      {
-        AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, 2 /*Traversal_Number*/, CRGB::Violet);
-      }
-      break;
-    default:
-      break;
-    }
-  }
-}
-
 /*Rocker control mode*/
 void ApplicationFunctionSet::ApplicationFunctionSet_Rocker(void)
 {
   if (Application_SmartRobotCarxxx0.Functional_Mode == Rocker_mode)
   {
     ApplicationFunctionSet_SmartRobotCarMotionControl(Application_SmartRobotCarxxx0.Motion_Control /*direction*/, Rocker_CarSpeed /*speed*/);
-  }
-}
-
-/*Line tracking mode*/
-void ApplicationFunctionSet::ApplicationFunctionSet_Tracking(void)
-{
-  static boolean timestamp = true;
-  static boolean BlindDetection = true;
-  static unsigned long MotorRL_time = 0;
-  if (Application_SmartRobotCarxxx0.Functional_Mode == TraceBased_mode)
-  {
-    if (Car_LeaveTheGround == false) //Check if the car leaves the ground
-    {
-      ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-      return;
-    }
-
-    // int getAnaloguexxx_L = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_L();
-    // int getAnaloguexxx_M = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_M();
-    // int getAnaloguexxx_R = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_R();
-#if _Test_print
-    static unsigned long print_time = 0;
-    if (millis() - print_time > 500)
-    {
-      print_time = millis();
-      Serial.print("ITR20001_getAnaloguexxx_L=");
-      Serial.println(getAnaloguexxx_L);
-      Serial.print("ITR20001_getAnaloguexxx_M=");
-      Serial.println(getAnaloguexxx_M);
-      Serial.print("ITR20001_getAnaloguexxx_R=");
-      Serial.println(getAnaloguexxx_R);
-    }
-#endif
-    if (function_xxx(TrackingData_M, TrackingDetection_S, TrackingDetection_E))
-    {
-      /*Achieve straight and uniform speed movement*/
-      ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 100);
-      timestamp = true;
-      BlindDetection = true;
-    }
-    else if (function_xxx(TrackingData_R, TrackingDetection_S, TrackingDetection_E))
-    {
-      /*Turn right*/
-      ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 100);
-      timestamp = true;
-      BlindDetection = true;
-    }
-    else if (function_xxx(TrackingData_L, TrackingDetection_S, TrackingDetection_E))
-    {
-      /*Turn left*/
-      ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 100);
-      timestamp = true;
-      BlindDetection = true;
-    }
-    else ////The car is not on the black line. execute Blind scan
-    {
-      if (timestamp == true) //acquire timestamp
-      {
-        timestamp = false;
-        MotorRL_time = millis();
-        ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-      }
-      /*Blind Detection*/
-      if ((function_xxx((millis() - MotorRL_time), 0, 200) || function_xxx((millis() - MotorRL_time), 1600, 2000)) && BlindDetection == true)
-      {
-        ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 100);
-      }
-      else if (((function_xxx((millis() - MotorRL_time), 200, 1600))) && BlindDetection == true)
-      {
-        ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 100);
-      }
-      else if ((function_xxx((millis() - MotorRL_time), 3000, 3500))) // Blind Detection ...s ?
-      {
-        BlindDetection = false;
-        ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-      }
-    }
-  }
-  else if (false == timestamp)
-  {
-    BlindDetection = true;
-    timestamp = true;
-    MotorRL_time = 0;
-  }
-}
-
-/*
-  Obstacle Avoidance Mode
-*/
-void ApplicationFunctionSet::ApplicationFunctionSet_Obstacle(void)
-{
-  static boolean first_is = true;
-  if (Application_SmartRobotCarxxx0.Functional_Mode == ObstacleAvoidance_mode)
-  {
-    uint8_t switc_ctrl = 0;
-    uint16_t get_Distance;
-    // if (Car_LeaveTheGround == false)
-    // {
-    //   ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-    //   return;
-    // }
-    if (first_is == true) //Enter the mode for the first time, and modulate the steering gear to 90 degrees
-    {
-      AppServo.DeviceDriverSet_Servo_control(90 /*Position_angle*/);
-      first_is = false;
-    }
-
-    AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Get(&get_Distance /*out*/);
-    if (function_xxx(get_Distance, 0, 20))
-    {
-      // ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-      ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 150);
-    }
-    else
-    {
-      for (uint8_t i = 1; i < 6; i += 2) //1、3、5 Omnidirectional detection of obstacle avoidance status
-      {
-        // AppServo.DeviceDriverSet_Servo_control(30 * i /*Position_angle*/);
-        ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 150);
-        delay_xxx(50);
-        AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Get(&get_Distance /*out*/);
-
-        if (function_xxx(get_Distance, 0, 20))
-        {
-          ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-          if (5 == i)
-          {
-            ApplicationFunctionSet_SmartRobotCarMotionControl(Backward, 150);
-            delay_xxx(500);
-            ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 150);
-            delay_xxx(50);
-            first_is = true;
-            break;
-          }
-        }
-        else
-        {
-          switc_ctrl = 0;
-          switch (i)
-          {
-          case 1:
-            ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 150);
-            break;
-          case 3:
-            ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 150);
-            break;
-          case 5:
-            ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 150);
-            break;
-          }
-          delay_xxx(50);
-          first_is = true;
-          break;
-        }
-      }
-    }
-    // else //if (function_xxx(get_Distance, 20, 50))
-    // {
-    //   ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 150);
-    // }
-  }
-  else
-  {
-    first_is = true;
   }
 }
 
@@ -724,105 +395,51 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Follow(void)
 {
   static uint16_t ULTRASONIC_Get = 0;
   static unsigned long ULTRASONIC_time = 0;
-  static uint8_t Position_Servo = 1;
-  static uint8_t timestamp = 3;
-  static uint8_t cycle = 0;
+  
+  static uint8_t detectionAttempts = 5;
+  static uint8_t turn_count = 0;
+  static uint8_t search_cycle = 0;
+  static bool first_detection = true;
+
   if (Application_SmartRobotCarxxx0.Functional_Mode == Follow_mode)
   {
-
-    // if (Car_LeaveTheGround == false)
-    // {
-    //   ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-    //   return;
-    // }
     AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Get(&ULTRASONIC_Get /*out*/);
-    if (false == function_xxx(ULTRASONIC_Get, 0, 20)) //There is no obstacle 20 cm ahead?
+    if (function_xxx(ULTRASONIC_Get, 0, 20)) //There is no obstacle 20 cm ahead?
     {
-      if (cycle < 3) 
+      if (first_detection)
       {
         ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-        ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 45);
-        cycle += 1;
+        first_detection = false;
+        search_cycle = 0;
+        turn_count = 0;
       }
-      else
-      {
-        ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-        ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 150);
-        cycle = 0;
-      }
-      // static unsigned long time_Servo = 0;
-      // static uint8_t Position_Servo_xx = 0;
-
-      // if (timestamp == 3)
-      // {
-      //   if (Position_Servo_xx != Position_Servo) //Act on servo motor：avoid loop execution
-      //   {
-      //     Position_Servo_xx = Position_Servo; //Act on servo motor：rotation angle record
-
-      //     if (Position_Servo == 1)
-      //     {
-      //       time_Servo = millis();
-      //       AppServo.DeviceDriverSet_Servo_control(80 /*Position_angle*/);
-      //     }
-      //     else if (Position_Servo == 2)
-      //     {
-      //       time_Servo = millis();
-      //       AppServo.DeviceDriverSet_Servo_control(20 /*Position_angle*/);
-      //     }
-      //     else if (Position_Servo == 3)
-      //     {
-      //       time_Servo = millis();
-      //       AppServo.DeviceDriverSet_Servo_control(80 /*Position_angle*/);
-      //     }
-      //     else if (Position_Servo == 4)
-      //     {
-      //       time_Servo = millis();
-      //       AppServo.DeviceDriverSet_Servo_control(150 /*Position_angle*/);
-      //     }
-      //   }
-      // }
-      // else
-      // {
-      //   if (timestamp == 1)
-      //   {
-      //     timestamp = 2;
-      //     time_Servo = millis();
-      //   }
-      // }
-      //  if (millis() - time_Servo > 1000) //Act on servo motor：stop at the current location for 2s
-      //  {
-      
-      //   timestamp = 3;
-      //   Position_Servo += 1;
-      //   OneCycle += 1;
-      //   if (OneCycle > 4)
-      //   {
-      //     Position_Servo = 1;
-      //     OneCycle = 5;
-      //   }
-      // }
+      ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 255);
     }
     else
     {
-      ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 255);
-      // OneCycle = 1;
-      // timestamp = 1;
-      // if ((Position_Servo == 1))
-      // { /*Move forward*/
-      // }
-      // else if ((Position_Servo == 2))
-      // { /*Turn right*/
-      //   ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 150);
-      // }
-      // else if ((Position_Servo == 3))
-      // {
-      //   /*Move forward*/
-      //   ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 100);
-      // }
-      // else if ((Position_Servo == 4))
-      // { /*Turn left*/
-      //   ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 150);
-      // }
+      first_detection = true;
+//      ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
+      if (search_cycle == 0)
+      {
+        if (turn_count >= 3)
+        {
+          ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 120);
+          turn_count = 0;
+          search_cycle = 1;
+        }
+        else
+        {
+          ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 60);
+          turn_count += 1;
+        }
+      }
+      else if (search_cycle >= 1 && turn_count >= 3)
+      {
+        ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 240);
+        search_cycle = 0;
+        turn_count = 0;
+      }
+        //       AppServo.DeviceDriverSet_Servo_control(150 /*Position_angle*/);
     }
   }
   else
@@ -1402,7 +1019,6 @@ void ApplicationFunctionSet::CMD_LightingControlTimeLimit_xxx0(uint8_t is_Lighti
     }
     if (LightingControl_TE == false)
     {
-      CMD_Lighting(is_LightingSequence, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
     }
   }
   else
@@ -1449,7 +1065,6 @@ void ApplicationFunctionSet::CMD_LightingControlTimeLimit_xxx0(void)
     }
     if (LightingControl_TE == false)
     {
-      CMD_Lighting(CMD_is_LightingSequence, CMD_is_LightingColorValue_R, CMD_is_LightingColorValue_G, CMD_is_LightingColorValue_B);
     }
   }
   else
@@ -1473,7 +1088,6 @@ void ApplicationFunctionSet::CMD_LightingControlNoTimeLimit_xxx0(uint8_t is_Ligh
   if (Application_SmartRobotCarxxx0.Functional_Mode == CMD_LightingControl_NoTimeLimit) //Enter Lighting Control mode without time-limited
   {
     LightingControl = true;
-    CMD_Lighting(is_LightingSequence, is_LightingColorValue_R, is_LightingColorValue_G, is_LightingColorValue_B);
   }
   else
   {
@@ -1489,7 +1103,6 @@ void ApplicationFunctionSet::CMD_LightingControlNoTimeLimit_xxx0(void)
   if (Application_SmartRobotCarxxx0.Functional_Mode == CMD_LightingControl_NoTimeLimit) //Enter Lighting Control mode without time-limited
   {
     LightingControl = true;
-    CMD_Lighting(CMD_is_LightingSequence, CMD_is_LightingColorValue_R, CMD_is_LightingColorValue_G, CMD_is_LightingColorValue_B);
   }
   else
   {
@@ -1509,8 +1122,6 @@ void ApplicationFunctionSet::CMD_ClearAllFunctions_xxx0(void)
   if (Application_SmartRobotCarxxx0.Functional_Mode == CMD_ClearAllFunctions_Standby_mode) //Command:N100 Clear all functions to enter standby mode
   {
     ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-    FastLED.clear(true);
-    AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, NUM_LEDS /*Traversal_Number*/, CRGB::Black);
     Application_SmartRobotCarxxx0.Motion_Control = stop_it;
     Application_SmartRobotCarxxx0.Functional_Mode = Standby_mode;
   }
@@ -1518,8 +1129,6 @@ void ApplicationFunctionSet::CMD_ClearAllFunctions_xxx0(void)
   {
 
     ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-    FastLED.clear(true);
-    AppRBG_LED.DeviceDriverSet_RBGLED_xxx(0 /*Duration*/, NUM_LEDS /*Traversal_Number*/, CRGB::Black);
     Application_SmartRobotCarxxx0.Motion_Control = stop_it;
     Application_SmartRobotCarxxx0.Functional_Mode = CMD_Programming_mode;
   }
@@ -2045,4 +1654,151 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
       }
     }
   }
+}
+
+#include <Wire.h>
+#include <MPU6050.h>
+
+// Create MPU6050 object
+MPU6050 mpu;
+unsigned long prevTime = 0;
+// Variables to store raw and calibrated sensor data
+int16_t ax, ay, az; // Accelerometer raw values
+int16_t gx, gy, gz; // Gyroscope raw values
+float ax_cal, ay_cal, az_cal; // Calibrated accelerometer values
+float gx_cal, gy_cal, gz_cal; // Calibrated gyroscope values
+
+// Sensitivity scale factors
+const float accel_scale = 9.8 / 16384.0;   // Convert raw accelerometer data to m/s^2
+const float gyro_scale = 1 / 131.0; // Convert raw gyro data to rad/s
+
+// Calibration offsets (these will be set after calibration)
+int16_t ax_offset = 0, ay_offset = 0, az_offset = 0;
+int16_t gx_offset = 0, gy_offset = 0, gz_offset = 0;
+
+void ApplicationFunctionSet::setup() {
+  Serial.begin(9600); // Start serial communication at 115200 baud
+  Wire.begin();         // Initialize I2C connection
+  
+  Serial.println("Initializing MPU6050...");
+  mpu.initialize();     // Initialize MPU6050 sensor
+  
+  // Check if MPU6050 is connected
+  if (!mpu.testConnection()) {
+    Serial.println("MPU6050 connection failed!");
+    while (1); // Halt the program if MPU6050 is not detected
+  }
+  Serial.println("MPU6050 successfully connected!");
+  
+  // Set the desired gyroscope range
+  // Options are:
+  // 0: ±250°/s, 1: ±500°/s, 2: ±1000°/s, 3: ±2000°/s
+  int gyroRange = 0; // Choose the full-scale range (change this as needed)
+  mpu.setFullScaleGyroRange(gyroRange);
+  int gyroRangeSet = mpu.getFullScaleGyroRange();
+  Serial.print("Gyroscope full-scale range set to: ");
+  switch (gyroRangeSet) {
+    case 0: Serial.println("±250°/s"); break;
+    case 1: Serial.println("±500°/s"); break;
+    case 2: Serial.println("±1000°/s"); break;
+    case 3: Serial.println("±2000°/s"); break;
+    default: Serial.println("Unknown range!"); break;
+  }
+
+  // Calibrate accelerometer and gyroscope
+  calibrateSensor();
+  prevTime = millis();
+}
+
+void ApplicationFunctionSet::loop() {
+  // Read raw accelerometer and gyroscope data
+  static int count = 0;
+  static float angleX = 0, angleY = 0, angleZ = 0; // Angles in degrees (roll, pitch, yaw)
+
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+  // Subtract offsets to get calibrated measurements
+  ax_cal = (ax - ax_offset) * accel_scale;
+  ay_cal = (ay - ay_offset) * accel_scale;
+  az_cal = (az - az_offset) * accel_scale;
+  
+  gx_cal = (gx - gx_offset) * gyro_scale;
+  gy_cal = (gy - gy_offset) * gyro_scale;
+  gz_cal = (gz - gz_offset) * gyro_scale;
+
+  unsigned long currentTime = millis();
+  float dt = (currentTime - prevTime) / 1000.0; // Convert milliseconds to seconds
+  prevTime = currentTime;
+
+  // Integrate angular velocity to calculate angles
+  angleX += gx_cal * dt; // Roll angle (X-axis)
+  angleY += gy_cal * dt; // Pitch angle (Y-axis)
+  angleZ += gz_cal * dt; // Yaw angle (Z-axis)
+
+  if (count >= 1000) 
+  {
+
+    // Print acceleration in m/s^2
+    // Serial.print("Accel [m/s^2]: ");
+    // Serial.print("X: "); Serial.print(ax_cal);
+    // Serial.print(", Y: "); Serial.print(ay_cal);
+    // Serial.print(", Z: "); Serial.println(az_cal);
+
+    // Print gyroscopic rates in rad/s
+    Serial.print("Gyro [rad/s]: ");
+    Serial.print("Yaw (Z): "); Serial.print(gz_cal);
+    Serial.print(", Pitch (Y): "); Serial.print(gy_cal);
+    Serial.print(", Roll (X): "); Serial.println(gx_cal);
+
+    Serial.println();
+  // Print the calculated angles
+    Serial.print("Angles (degrees): ");
+    Serial.print(", Yaw (Z): "); Serial.println(angleZ);
+
+    count = 0;
+  }
+  else
+  {
+    count += 1;
+  }
+}
+
+
+// Function to calibrate the accelerometer and gyroscope
+void ApplicationFunctionSet::calibrateSensor() {
+  Serial.println("Calibrating sensors... Please keep the MPU6050 stable.");
+  
+  int num_samples = 1000; // Number of samples to take for calibration
+  long ax_sum = 0, ay_sum = 0, az_sum = 0;
+  long gx_sum = 0, gy_sum = 0, gz_sum = 0;
+  
+  for (int i = 0; i < num_samples; i++) {
+    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    
+    ax_sum += ax;
+    ay_sum += ay;
+    az_sum += az;
+    gx_sum += gx;
+    gy_sum += gy;
+    gz_sum += gz;
+    
+    delay(2); // Small delay for stability
+  }
+  
+  // Calculate offsets as the average of the readings
+  ax_offset = ax_sum / num_samples;
+  ay_offset = ay_sum / num_samples;
+  az_offset = az_sum / num_samples;// Remove the 1g (gravity) offset on Z-axis
+  gx_offset = gx_sum / num_samples;
+  gy_offset = gy_sum / num_samples;
+  gz_offset = gz_sum / num_samples;
+  
+  Serial.println("Calibration complete!");
+  Serial.print("Offsets: ");
+  Serial.print("Ax: "); Serial.print(ax_offset);
+  Serial.print(", Ay: "); Serial.print(ay_offset);
+  Serial.print(", Az: "); Serial.println(az_offset);
+  Serial.print("Gx: "); Serial.print(gx_offset);
+  Serial.print(", Gy: "); Serial.print(gy_offset);
+  Serial.print(", Gz: "); Serial.println(gz_offset);
 }

@@ -28,6 +28,7 @@ public:
   void ApplicationFunctionSet_SensorDataUpdate(void);   //Sensor Data Update
   void ApplicationFunctionSet_SerialPortDataAnalysis(void);
   void ApplicationFunctionSet_IRrecv(void);
+  void calibrateSensor(void);
 
 public: /*CMD*/
   void CMD_UltrasoundModuleStatus_xxx0(uint8_t is_get);
@@ -53,6 +54,8 @@ public: /*CMD*/
   void CMD_ClearAllFunctions_xxx0(void);
   void CMD_LEDNumberDisplayControl_xxx0(uint8_t is_LEDNumber);
   void CMD_TrajectoryControl_xxx0(void);
+  void setup(void);
+  void loop(void);
 
 private:
   /*Sensor Raw Value*/
