@@ -30,39 +30,39 @@ volatile irparams_t irparams;
 // Normally macros are used for efficiency
 #ifdef DEBUG
 int MATCH(int measured, int desired) {
-  Serial.print("Testing: ");
+  Serial.print(F("Testing: "));
   Serial.print(TICKS_LOW(desired), DEC);
-  Serial.print(" <= ");
+  Serial.print(F(" <= "));
   Serial.print(measured, DEC);
-  Serial.print(" <= ");
+  Serial.print(F(" <= "));
   Serial.println(TICKS_HIGH(desired), DEC);
   return measured >= TICKS_LOW(desired) && measured <= TICKS_HIGH(desired);
 }
 
 int MATCH_MARK(int measured_ticks, int desired_us) {
-  Serial.print("Testing mark ");
+  Serial.print(F("Testing mark "));
   Serial.print(measured_ticks * USECPERTICK, DEC);
-  Serial.print(" vs ");
+  Serial.print(F(" vs "));
   Serial.print(desired_us, DEC);
-  Serial.print(": ");
+  Serial.print(F(": "));
   Serial.print(TICKS_LOW(desired_us + MARK_EXCESS), DEC);
-  Serial.print(" <= ");
+  Serial.print(F(" <= "));
   Serial.print(measured_ticks, DEC);
-  Serial.print(" <= ");
+  Serial.print(F(" <= "));
   Serial.println(TICKS_HIGH(desired_us + MARK_EXCESS), DEC);
   return measured_ticks >= TICKS_LOW(desired_us + MARK_EXCESS) && measured_ticks <= TICKS_HIGH(desired_us + MARK_EXCESS);
 }
 
 int MATCH_SPACE(int measured_ticks, int desired_us) {
-  Serial.print("Testing space ");
+  Serial.print(F("Testing space "));
   Serial.print(measured_ticks * USECPERTICK, DEC);
-  Serial.print(" vs ");
+  Serial.print(F(" vs "));
   Serial.print(desired_us, DEC);
-  Serial.print(": ");
+  Serial.print(F(": "));
   Serial.print(TICKS_LOW(desired_us - MARK_EXCESS), DEC);
-  Serial.print(" <= ");
+  Serial.print(F(" <= "));
   Serial.print(measured_ticks, DEC);
-  Serial.print(" <= ");
+  Serial.print(F(" <= "));
   Serial.println(TICKS_HIGH(desired_us - MARK_EXCESS), DEC);
   return measured_ticks >= TICKS_LOW(desired_us - MARK_EXCESS) && measured_ticks <= TICKS_HIGH(desired_us - MARK_EXCESS);
 }
@@ -419,61 +419,61 @@ int IRrecv::decode(decode_results *results) {
     return ERR;
   }
 #ifdef DEBUG
-  Serial.println("Attempting NEC decode");
+  Serial.println(F("Attempting NEC decode"));
 #endif
   if (decodeNEC(results)) {
     return DECODED;
   }
 #ifdef DEBUG
-  Serial.println("Attempting Sony decode");
+  Serial.println(F("Attempting Sony decode"));
 #endif
   if (decodeSony(results)) {
     return DECODED;
   }
 #ifdef DEBUG
-  Serial.println("Attempting Sanyo decode");
+  Serial.println(F("Attempting Sanyo decode"));
 #endif
   if (decodeSanyo(results)) {
     return DECODED;
   }
 #ifdef DEBUG
-  Serial.println("Attempting Mitsubishi decode");
+  Serial.println(F("Attempting Mitsubishi decode"));
 #endif
   if (decodeMitsubishi(results)) {
     return DECODED;
   }
 #ifdef DEBUG
-  Serial.println("Attempting RC5 decode");
+  Serial.println(F("Attempting RC5 decode"));
 #endif  
   if (decodeRC5(results)) {
     return DECODED;
   }
 #ifdef DEBUG
-  Serial.println("Attempting RC6 decode");
+  Serial.println(F("Attempting RC6 decode"));
 #endif 
   if (decodeRC6(results)) {
     return DECODED;
   }
 #ifdef DEBUG
-    Serial.println("Attempting Panasonic decode");
+    Serial.println(F("Attempting Panasonic decode"));
 #endif 
     if (decodePanasonic(results)) {
         return DECODED;
     }
 #ifdef DEBUG
-    Serial.println("Attempting LG decode");
+    Serial.println(F("Attempting LG decode"));
 #endif 
     if (decodeLG(results)) {
         return DECODED;
     }
 #ifdef DEBUG
-    Serial.println("Attempting JVC decode");
+    Serial.println(F("Attempting JVC decode"));
 #endif 
     if (decodeJVC(results)) {
         return DECODED;
     }
 #ifdef DEBUG
-  Serial.println("Attempting SAMSUNG decode");
+  Serial.println(F("Attempting SAMSUNG decode"));
 #endif
   if (decodeSAMSUNG(results)) {
     return DECODED;
@@ -756,10 +756,10 @@ int IRrecv::getRClevel(decode_results *results, int *offset, int *used, int t1) 
   }
 #ifdef DEBUG
   if (val == MARK) {
-    Serial.println("MARK");
+    Serial.println(F("MARK"));
   } 
   else {
-    Serial.println("SPACE");
+    Serial.println(F("SPACE"));
   }
 #endif
   return val;   

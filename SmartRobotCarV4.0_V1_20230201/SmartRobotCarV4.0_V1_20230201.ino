@@ -25,7 +25,7 @@ void loop()
   // Application_FunctionSet.ApplicationFunctionSet_RGB();
   Application_FunctionSet.ApplicationFunctionSet_Follow();
   // Application_FunctionSet.ApplicationFunctionSet_Obstacle();
-  // Application_FunctionSet.ApplicationFunctionSet_Tracking();
+  Application_FunctionSet.ApplicationFunctionSet_Tracking();
   Application_FunctionSet.ApplicationFunctionSet_Rocker();
   Application_FunctionSet.ApplicationFunctionSet_Standby();
   //Application_FunctionSet.ApplicationFunctionSet_IRrecv();

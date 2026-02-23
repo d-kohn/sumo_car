@@ -388,6 +388,89 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Rocker(void)
   }
 }
 
+/*Line tracking mode*/
+void ApplicationFunctionSet::ApplicationFunctionSet_Tracking(void)
+{
+  static boolean timestamp = true;
+  static boolean BlindDetection = true;
+  static unsigned long MotorRL_time = 0;
+  if (Application_SmartRobotCarxxx0.Functional_Mode == TraceBased_mode)
+  {
+    if (Car_LeaveTheGround == false) //Check if the car leaves the ground
+    {
+      ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
+      return;
+    }
+
+    // int getAnaloguexxx_L = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_L();
+    // int getAnaloguexxx_M = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_M();
+    // int getAnaloguexxx_R = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_R();
+#if _Test_print
+    static unsigned long print_time = 0;
+    if (millis() - print_time > 500)
+    {
+      print_time = millis();
+      Serial.print("ITR20001_getAnaloguexxx_L=");
+      Serial.println(getAnaloguexxx_L);
+      Serial.print("ITR20001_getAnaloguexxx_M=");
+      Serial.println(getAnaloguexxx_M);
+      Serial.print("ITR20001_getAnaloguexxx_R=");
+      Serial.println(getAnaloguexxx_R);
+    }
+#endif
+    if (function_xxx(TrackingData_M, TrackingDetection_S, TrackingDetection_E))
+    {
+      /*Achieve straight and uniform speed movement*/
+      ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 100);
+      timestamp = true;
+      BlindDetection = true;
+    }
+    else if (function_xxx(TrackingData_R, TrackingDetection_S, TrackingDetection_E))
+    {
+      /*Turn right*/
+      ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 100);
+      timestamp = true;
+      BlindDetection = true;
+    }
+    else if (function_xxx(TrackingData_L, TrackingDetection_S, TrackingDetection_E))
+    {
+      /*Turn left*/
+      ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 100);
+      timestamp = true;
+      BlindDetection = true;
+    }
+    else ////The car is not on the black line. execute Blind scan
+    {
+      if (timestamp == true) //acquire timestamp
+      {
+        timestamp = false;
+        MotorRL_time = millis();
+        ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
+      }
+      /*Blind Detection*/
+      if ((function_xxx((millis() - MotorRL_time), 0, 200) || function_xxx((millis() - MotorRL_time), 1600, 2000)) && BlindDetection == true)
+      {
+        ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 100);
+      }
+      else if (((function_xxx((millis() - MotorRL_time), 200, 1600))) && BlindDetection == true)
+      {
+        ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 100);
+      }
+      else if ((function_xxx((millis() - MotorRL_time), 3000, 3500))) // Blind Detection ...s ?
+      {
+        BlindDetection = false;
+        ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
+      }
+    }
+  }
+  else if (false == timestamp)
+  {
+    BlindDetection = true;
+    timestamp = true;
+    MotorRL_time = 0;
+  }
+}
+
 /*
   Following mode：
 */
@@ -553,7 +636,7 @@ void ApplicationFunctionSet::CMD_inspect_xxx0(void)
 {
   if (Application_SmartRobotCarxxx0.Functional_Mode == CMD_inspect)
   {
-    Serial.println("CMD_inspect");
+    Serial.println(F("CMD_inspect"));
     delay(100);
   }
 }
@@ -1428,7 +1511,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
     SerialPortData = "";
     if (error)
     {
-      Serial.println("error:deserializeJson");
+      Serial.println(F("error:deserializeJson"));
     }
     else if (!error) //Check if the deserialization is successful
     {
@@ -1550,7 +1633,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
       case 100:                                                                             /*<Command：N 100> */
         Application_SmartRobotCarxxx0.Functional_Mode = CMD_ClearAllFunctions_Standby_mode; /*Clear all function:Enter standby mode*/
 #if _is_print
-        Serial.print("{ok}");
+        Serial.print(F("{ok}"));
         //Serial.print('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
@@ -1570,7 +1653,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         }
 
 #if _is_print
-        Serial.print("{ok}");
+  Serial.print(F("{ok}"));
         //Serial.print('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
@@ -1588,7 +1671,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
 
 #if _Test_print
         //Serial.print('{' + CommandSerialNumber + "_ok}");
-        Serial.print("{ok}");
+  Serial.print(F("{ok}"));
 #endif
         break;
 
@@ -1602,7 +1685,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
 
 #if _is_print
         //Serial.print('{' + CommandSerialNumber + "_ok}");
-        Serial.print("{ok}");
+  Serial.print(F("{ok}"));
 #endif
         break;
       case 102: /*<Command：N 102> :Rocker control mode command*/
@@ -1657,7 +1740,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
 }
 
 #include <Wire.h>
-#include <MPU6050.h>
+#include "MPU6050.h"
 
 // Create MPU6050 object
 MPU6050 mpu;
@@ -1680,15 +1763,15 @@ void ApplicationFunctionSet::setup() {
   Serial.begin(9600); // Start serial communication at 115200 baud
   Wire.begin();         // Initialize I2C connection
   
-  Serial.println("Initializing MPU6050...");
+  Serial.println(F("Initializing MPU6050..."));
   mpu.initialize();     // Initialize MPU6050 sensor
   
   // Check if MPU6050 is connected
   if (!mpu.testConnection()) {
-    Serial.println("MPU6050 connection failed!");
+    Serial.println(F("MPU6050 connection failed!"));
     while (1); // Halt the program if MPU6050 is not detected
   }
-  Serial.println("MPU6050 successfully connected!");
+  Serial.println(F("MPU6050 successfully connected!"));
   
   // Set the desired gyroscope range
   // Options are:
@@ -1696,13 +1779,13 @@ void ApplicationFunctionSet::setup() {
   int gyroRange = 0; // Choose the full-scale range (change this as needed)
   mpu.setFullScaleGyroRange(gyroRange);
   int gyroRangeSet = mpu.getFullScaleGyroRange();
-  Serial.print("Gyroscope full-scale range set to: ");
+  Serial.print(F("Gyroscope full-scale range set to: "));
   switch (gyroRangeSet) {
-    case 0: Serial.println("±250°/s"); break;
-    case 1: Serial.println("±500°/s"); break;
-    case 2: Serial.println("±1000°/s"); break;
-    case 3: Serial.println("±2000°/s"); break;
-    default: Serial.println("Unknown range!"); break;
+    case 0: Serial.println(F("±250°/s")); break;
+    case 1: Serial.println(F("±500°/s")); break;
+    case 2: Serial.println(F("±1000°/s")); break;
+    case 3: Serial.println(F("±2000°/s")); break;
+    default: Serial.println(F("Unknown range!")); break;
   }
 
   // Calibrate accelerometer and gyroscope
@@ -1745,15 +1828,15 @@ void ApplicationFunctionSet::loop() {
     // Serial.print(", Z: "); Serial.println(az_cal);
 
     // Print gyroscopic rates in rad/s
-    Serial.print("Gyro [rad/s]: ");
-    Serial.print("Yaw (Z): "); Serial.print(gz_cal);
-    Serial.print(", Pitch (Y): "); Serial.print(gy_cal);
-    Serial.print(", Roll (X): "); Serial.println(gx_cal);
+    Serial.print(F("Gyro [rad/s]: "));
+    Serial.print(F("Yaw (Z): ")); Serial.print(gz_cal);
+    Serial.print(F(", Pitch (Y): ")); Serial.print(gy_cal);
+    Serial.print(F(", Roll (X): ")); Serial.println(gx_cal);
 
     Serial.println();
   // Print the calculated angles
-    Serial.print("Angles (degrees): ");
-    Serial.print(", Yaw (Z): "); Serial.println(angleZ);
+    Serial.print(F("Angles (degrees): "));
+    Serial.print(F(", Yaw (Z): ")); Serial.println(angleZ);
 
     count = 0;
   }
@@ -1766,7 +1849,7 @@ void ApplicationFunctionSet::loop() {
 
 // Function to calibrate the accelerometer and gyroscope
 void ApplicationFunctionSet::calibrateSensor() {
-  Serial.println("Calibrating sensors... Please keep the MPU6050 stable.");
+  Serial.println(F("Calibrating sensors... Please keep the MPU6050 stable."));
   
   int num_samples = 1000; // Number of samples to take for calibration
   long ax_sum = 0, ay_sum = 0, az_sum = 0;
@@ -1793,12 +1876,12 @@ void ApplicationFunctionSet::calibrateSensor() {
   gy_offset = gy_sum / num_samples;
   gz_offset = gz_sum / num_samples;
   
-  Serial.println("Calibration complete!");
-  Serial.print("Offsets: ");
-  Serial.print("Ax: "); Serial.print(ax_offset);
-  Serial.print(", Ay: "); Serial.print(ay_offset);
-  Serial.print(", Az: "); Serial.println(az_offset);
-  Serial.print("Gx: "); Serial.print(gx_offset);
-  Serial.print(", Gy: "); Serial.print(gy_offset);
-  Serial.print(", Gz: "); Serial.println(gz_offset);
+  Serial.println(F("Calibration complete!"));
+  Serial.print(F("Offsets: "));
+  Serial.print(F("Ax: ")); Serial.print(ax_offset);
+  Serial.print(F(", Ay: ")); Serial.print(ay_offset);
+  Serial.print(F(", Az: ")); Serial.println(az_offset);
+  Serial.print(F("Gx: ")); Serial.print(gx_offset);
+  Serial.print(F(", Gy: ")); Serial.print(gy_offset);
+  Serial.print(F(", Gz: ")); Serial.println(gz_offset);
 }

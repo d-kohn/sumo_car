@@ -34,7 +34,7 @@ bool MPU6050_getdata::MPU6050_dveInit(void)
   do
   {
     chip_id = accelgyro.getDeviceID();
-    Serial.print("MPU6050_chip_id: ");
+    Serial.print(F("MPU6050_chip_id: "));
     Serial.println(chip_id);
     delay(10);
     cout += 1;

@@ -80,13 +80,13 @@ int DeviceDriverSet_ITR20001::DeviceDriverSet_ITR20001_getAnaloguexxx_R(void)
 #if _Test_DeviceDriverSet
 void DeviceDriverSet_ITR20001::DeviceDriverSet_ITR20001_Test(void)
 {
-  Serial.print("\tL=");
+  Serial.print(F("\tL="));
   Serial.print(analogRead(PIN_ITR20001xxxL));
 
-  Serial.print("\tM=");
+  Serial.print(F("\tM="));
   Serial.print(analogRead(PIN_ITR20001xxxM));
 
-  Serial.print("\tR=");
+  Serial.print(F("\tR="));
   Serial.println(analogRead(PIN_ITR20001xxxR));
 }
 #endif
@@ -267,9 +267,9 @@ void DeviceDriverSet_ULTRASONIC::DeviceDriverSet_ULTRASONIC_Test(void)
   // // return tempda;
   // return tempda_x;
 
-  Serial.print("ULTRASONIC=");
+  Serial.print(F("ULTRASONIC="));
   Serial.print(tempda); // Convert ping time to distance and print result (0 = outside set distance range, no ping echo)
-  Serial.println("cm");
+  Serial.println(F("cm"));
 }
 
 #endif
@@ -462,7 +462,7 @@ void DeviceDriverSet_IRrecv::DeviceDriverSet_IRrecv_Test(void)
 {
   if (irrecv.decode(&results))
   {
-    Serial.print("IRrecv_Test:");
+    Serial.print(F("IRrecv_Test:"));
     Serial.println(results.value);
     irrecv.resume();
   }
