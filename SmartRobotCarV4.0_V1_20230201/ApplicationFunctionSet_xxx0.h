@@ -56,7 +56,6 @@ public:
   void MoveForeward(uint8_t speed);
   void StopVehicle(void);
   void clearVehicleMotion(void);
-  unsigned long lastMotionDebugTime = 0;
 
 public: /*CMD*/
   void CMD_UltrasoundModuleStatus_xxx0(uint8_t is_get);
@@ -96,6 +95,9 @@ private:
   bool first_detection = true;
   uint8_t turn_count = 0;
   uint8_t search_cycle = 0;
+  SmartRobotCarMotionControl turnDirection = Right;
+  unsigned long lastMotionDebugTime = 0;
+  bool avoidingEdge = false;
  
   /*Sensor Status*/
   boolean VoltageDetectionStatus = false;
