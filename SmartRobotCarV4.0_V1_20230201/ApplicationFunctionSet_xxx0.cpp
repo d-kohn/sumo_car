@@ -19,7 +19,7 @@
 #define _is_print 1
 #define _Test_print 0
 #define DEBUG_PRINT_TIMER 1000
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
@@ -490,10 +490,10 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Tracking(void)
       return;
     }
 
-    // int getAnaloguexxx_L = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_L();
-    // int getAnaloguexxx_M = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_M();
-    // int getAnaloguexxx_R = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_R();
-#ifdef _test_print
+    int getAnaloguexxx_L = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_L();
+    int getAnaloguexxx_M = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_M();
+    int getAnaloguexxx_R = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_R();
+#ifdef DEBUG
     static unsigned long print_time = 0;
     if (millis() - print_time > 1000)
     {
@@ -567,92 +567,125 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Follow(void)
   uint16_t ULTRASONIC_Get = 0;
   static unsigned long ULTRASONIC_time = 0;
   static unsigned long lastFollowDebugTime = 0;
-  static uint8_t ultrasonicHitCount = 0;
-  
-  static uint8_t detectionAttempts = 5;
+
   if (Application_SmartRobotCarxxx0.Functional_Mode == Follow_mode)
   {
-    Serial.println();
-    Serial.println(F("ENTERING"));
-    
-#ifdef DEBUG
+    int getAnaloguexxx_L = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_L();
+    int getAnaloguexxx_M = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_M();
+    int getAnaloguexxx_R = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_R();
+    bool rightEdgeDetected = (getAnaloguexxx_R > 700);
+    bool leftEdgeDetected = (getAnaloguexxx_L > 700);
     unsigned long currentTime = millis();
+
+//#ifdef DEBUG
     if (currentTime - lastFollowDebugTime >= DEBUG_PRINT_TIMER && Application_SmartRobotCarxxx0.Functional_Mode != Standby_mode)
     {
-      DEBUG_PRINT(F("search_cycle: "));
-      DEBUG_PRINT(search_cycle);
-      DEBUG_PRINT(F("      turn_count: "));
-      DEBUG_PRINTLN(turn_count);
+      // DEBUG_PRINT(F("search_cycle: "));
+      // DEBUG_PRINT(search_cycle);
+      // DEBUG_PRINT(F("      turn_count: "));
+      // DEBUG_PRINTLN(turn_count);
+      Serial.print("ITR20001_getAnaloguexxx_L=");
+      Serial.print(getAnaloguexxx_L);
+      Serial.print("      ITR20001_getAnaloguexxx_M= ");
+      Serial.print(getAnaloguexxx_M);
+      Serial.print("      ITR20001_getAnaloguexxx_R= ");
+      Serial.println(getAnaloguexxx_R);
       lastFollowDebugTime = currentTime;
     }
-#endif
-    AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Get(&ULTRASONIC_Get /*out*/);
+//#endif
+
+    if (leftEdgeDetected && rightEdgeDetected)
+    {
+      if (turnInProgress)
+      {
+        StopVehicle();
+      }
+      float bothEdgeTurnAngle = 180.0f;//165.0f + (currentTime % 30);
+      TurnByAngle(Left, bothEdgeTurnAngle, 150);
+      Serial.println(F("Both edges > 700, Turn Around "));
+    }
+    else if (leftEdgeDetected)
+    {
+      if (turnInProgress)
+      {
+        StopVehicle();
+      }
+      float edgeTurnAngle = 90.0f;//75.0f + (currentTime % 30);
+      TurnByAngle(Left, edgeTurnAngle, 150);
+      Serial.println(F("R edge > 700, Turn Right "));
+    }
+    else if (rightEdgeDetected)
+    {
+      if (turnInProgress)
+      {
+        StopVehicle();
+      }
+      float edgeTurnAngle = 90.0f;//75.0f + (currentTime % 30);
+      TurnByAngle(Right, edgeTurnAngle, 150);
+      Serial.println(F("L edge > 700, Turn Left "));
+    }
+  else
+  {
+    AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Get(&ULTRASONIC_Get);
     bool obstacleDetected = function_xxx(ULTRASONIC_Get, 1, 20);
-    // if (obstacleDetected)
-    // {
-    //     ultrasonicHitCount++;
-    // }
-    // else
-    // {
-    //   ultrasonicHitCount = 0;
-    // }
 
     if (obstacleDetected) //There are obstacle 20 cm ahead?
     {
       if (first_detection)
       {
-        Serial.println(F("First detection of obstacle ahead! Starting search..."));
+        DEBUG_PRINTLN(F("First detection of obstacle ahead! Starting search..."));
 
         StopVehicle();
         first_detection = false;
         search_cycle = 0;
         turn_count = 0;
       }
-      Serial.println(F("Found obstacle ahead!"));
-      MoveForeward(255);
+      DEBUG_PRINTLN(F("Found obstacle ahead!"));
+      MoveForeward(120);
     }
     else if (!turnInProgress)
     {
-      Serial.println(F("No detection"));
+      DEBUG_PRINTLN(F("No detection"));
       first_detection = true;
-//      ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
-      if (search_cycle == 0)
-      {
-        if (turn_count >= 3)
-        {
-         TurnByAngle(Left, 90.0f, 120);
-          DEBUG_PRINTLN(F("Turn Left 90"));
-          turn_count = 0;
-          search_cycle = 1;
-        }
-        else
-        {
-          TurnByAngle(Right, 30.0f, 120);
-          DEBUG_PRINTLN(F("Turn Right 30"));
-          turn_count += 1;
-        }
+// //      ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
+//         if (search_cycle == 0)
+//         {
+//           if (turn_count >= 3)
+//           {
+//           TurnByAngle(Left, 90.0f, 120);
+//             DEBUG_PRINTLN(F("Turn Left 90"));
+//             turn_count = 0;
+//             search_cycle = 1;
+//           }
+//           else
+//           {
+            TurnByAngle(Right, 30.0f, 120);
+//             DEBUG_PRINTLN(F("Turn Right 30"));
+//             turn_count += 1;
+//           }
+//         }
+//         else if (search_cycle >= 1 && turn_count >= 3)
+//         {
+//           TurnByAngle(Right, 180.0f, 180);
+//           DEBUG_PRINTLN(F("Turn Right 180"));
+//           search_cycle = 0;
+//           turn_count = 0;
+//         }
+//         else
+//         {
+//           TurnByAngle(Left, 30.0f, 120);
+//           DEBUG_PRINTLN(F("Turn Left 30"));
+//           turn_count += 1;
+//         }
+//       }
+//       //       AppServo.DeviceDriverSet_Servo_control(150 /*Position_angle*/);
       }
-      else if (search_cycle >= 1 && turn_count >= 3)
-      {
-        TurnByAngle(Right, 180.0f, 180);
-        DEBUG_PRINTLN(F("Turn Right 180"));
-        search_cycle = 0;
-        turn_count = 0;
-      }
-      else
-      {
-        TurnByAngle(Left, 30.0f, 120);
-        DEBUG_PRINTLN(F("Turn Left 30"));
-        turn_count += 1;
-      }
-        //       AppServo.DeviceDriverSet_Servo_control(150 /*Position_angle*/);
     }
   }
   else
   {
     ULTRASONIC_Get = 0;
     ULTRASONIC_time = 0;
-    ultrasonicHitCount = 0;
   }
 }
 
