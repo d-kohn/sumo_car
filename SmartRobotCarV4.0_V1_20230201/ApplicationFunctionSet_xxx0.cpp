@@ -18,8 +18,24 @@
 
 #define _is_print 1
 #define _Test_print 0
+#define DEBUG_PRINT_TIMER 1000
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_PRINT(...) Serial.print(__VA_ARGS__)
+#define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
+#else
+#define DEBUG_PRINT(...)
+#define DEBUG_PRINTLN(...)
+#endif
 
 ApplicationFunctionSet Application_FunctionSet;
+
+SmartRobotCarMotionControl motionDirection = stop_it;
+float targetAngle = 0.0f;
+bool turnInProgress = false;
+uint8_t motionSpeed = 120;
+volatile float zAngle = 0.0f;
 
 /*Hardware device object list*/
 MPU6050_getdata AppMPU6050getdata;
@@ -50,20 +66,6 @@ delay_xxx(uint16_t _ms)
     delay(1);
   }
 }
-
-/*Movement Direction Control List*/
-enum SmartRobotCarMotionControl
-{
-  Forward,       //(1)
-  Backward,      //(2)
-  Left,          //(3)
-  Right,         //(4)
-  LeftForward,   //(5)
-  LeftBackward,  //(6)
-  RightForward,  //(7)
-  RightBackward, //(8)
-  stop_it        //(9)
-};               //direction方向:（1）、（2）、 （3）、（4）、（5）、（6）
 
 /*Mode Control List*/
 enum SmartRobotCarFunctionalModel
@@ -104,7 +106,7 @@ void ApplicationFunctionSet_SmartRobotCarMotionControl(SmartRobotCarMotionContro
 void ApplicationFunctionSet::ApplicationFunctionSet_Init(void)
 {
   bool res_error = true;
-  Serial.begin(9600);
+  Serial.begin(115200);
   AppVoltage.DeviceDriverSet_Voltage_Init();
   AppMotor.DeviceDriverSet_Motor_Init();
   AppServo.DeviceDriverSet_Servo_Init(90);
@@ -317,6 +319,45 @@ static void ApplicationFunctionSet_SmartRobotCarMotionControl(SmartRobotCarMotio
     break;
   }
 }
+
+void ApplicationFunctionSet::ApplicationFunctionSet_UpdateVehicleMotion(void)
+{
+  if (Application_SmartRobotCarxxx0.Functional_Mode == Follow_mode)
+  {
+    unsigned long currentTime = millis();
+
+    if (motionDirection == Right)
+    {
+      if (zAngle <= targetAngle)
+      {
+        motionDirection = stop_it;
+        motionSpeed = 0;
+        turnInProgress = false;
+      }
+    }
+    else if (motionDirection == Left)
+    {
+      if (zAngle >= targetAngle)
+      {
+        motionDirection = stop_it;
+        motionSpeed = 0;
+        turnInProgress = false;
+      }
+    }
+#ifdef DEBUG
+    if (currentTime - lastMotionDebugTime >= DEBUG_PRINT_TIMER)
+    {
+      // DEBUG_PRINT(F("targetAngle: "));
+      // DEBUG_PRINT(targetAngle);
+      // DEBUG_PRINT(F(", turnInProgress: "));
+      // DEBUG_PRINTLN(turnInProgress ? F("true") : F("false"));
+      // lastMotionDebugTime = currentTime;
+    }
+#endif
+    ApplicationFunctionSet_SmartRobotCarMotionControl(motionDirection, motionSpeed);
+  }
+}
+
 /*
  Robot car update sensors' data:Partial update (selective update)
 */
@@ -388,6 +429,53 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Rocker(void)
   }
 }
 
+void ApplicationFunctionSet::TurnByAngle(SmartRobotCarMotionControl direction, float turnAngle, uint8_t speed)
+{
+  if (turnAngle <= 0.0f)
+  {
+    return;
+  }
+
+  if (direction == Left)
+  {
+    targetAngle = zAngle + turnAngle;
+  }
+  else if (direction == Right)
+  {
+    targetAngle = zAngle - turnAngle;
+  }
+  motionDirection = direction;
+  motionSpeed = speed;
+  turnInProgress = true;
+}
+
+void ApplicationFunctionSet::MoveForeward(uint8_t speed)
+{
+  motionDirection = Forward;
+  motionSpeed = speed;
+  turnInProgress = false;
+  targetAngle = 0.0f; // Reset target angle when moving forward 
+}
+
+void ApplicationFunctionSet::StopVehicle(void)
+{
+  motionDirection = stop_it;
+  motionSpeed = 0;
+  turnInProgress = false;
+}
+
+void ApplicationFunctionSet::clearVehicleMotion(void)
+{
+  first_detection = true;
+  search_cycle = 0;
+  turn_count = 0;
+
+  targetAngle = 0.0f;
+  motionSpeed = 0;
+  motionDirection = stop_it;
+  turnInProgress = false;
+}
+
 /*Line tracking mode*/
 void ApplicationFunctionSet::ApplicationFunctionSet_Tracking(void)
 {
@@ -405,17 +493,17 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Tracking(void)
     // int getAnaloguexxx_L = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_L();
     // int getAnaloguexxx_M = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_M();
     // int getAnaloguexxx_R = AppITR20001.DeviceDriverSet_ITR20001_getAnaloguexxx_R();
-#if _Test_print
+#ifdef _test_print
     static unsigned long print_time = 0;
-    if (millis() - print_time > 500)
+    if (millis() - print_time > 1000)
     {
       print_time = millis();
-      Serial.print("ITR20001_getAnaloguexxx_L=");
-      Serial.println(getAnaloguexxx_L);
-      Serial.print("ITR20001_getAnaloguexxx_M=");
-      Serial.println(getAnaloguexxx_M);
-      Serial.print("ITR20001_getAnaloguexxx_R=");
-      Serial.println(getAnaloguexxx_R);
+      DEBUG_PRINT("ITR20001_getAnaloguexxx_L=");
+      DEBUG_PRINTLN(getAnaloguexxx_L);
+      DEBUG_PRINT("ITR20001_getAnaloguexxx_M=");
+      DEBUG_PRINTLN(getAnaloguexxx_M);
+      DEBUG_PRINT("ITR20001_getAnaloguexxx_R=");
+      DEBUG_PRINTLN(getAnaloguexxx_R);
     }
 #endif
     if (function_xxx(TrackingData_M, TrackingDetection_S, TrackingDetection_E))
@@ -476,51 +564,86 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Tracking(void)
 */
 void ApplicationFunctionSet::ApplicationFunctionSet_Follow(void)
 {
-  static uint16_t ULTRASONIC_Get = 0;
+  uint16_t ULTRASONIC_Get = 0;
   static unsigned long ULTRASONIC_time = 0;
+  static unsigned long lastFollowDebugTime = 0;
+  static uint8_t ultrasonicHitCount = 0;
   
   static uint8_t detectionAttempts = 5;
-  static uint8_t turn_count = 0;
-  static uint8_t search_cycle = 0;
-  static bool first_detection = true;
-
   if (Application_SmartRobotCarxxx0.Functional_Mode == Follow_mode)
   {
+    Serial.println();
+    Serial.println(F("ENTERING"));
+    
+#ifdef DEBUG
+    unsigned long currentTime = millis();
+    if (currentTime - lastFollowDebugTime >= DEBUG_PRINT_TIMER && Application_SmartRobotCarxxx0.Functional_Mode != Standby_mode)
+    {
+      DEBUG_PRINT(F("search_cycle: "));
+      DEBUG_PRINT(search_cycle);
+      DEBUG_PRINT(F("      turn_count: "));
+      DEBUG_PRINTLN(turn_count);
+      lastFollowDebugTime = currentTime;
+    }
+#endif
     AppULTRASONIC.DeviceDriverSet_ULTRASONIC_Get(&ULTRASONIC_Get /*out*/);
-    if (function_xxx(ULTRASONIC_Get, 0, 20)) //There is no obstacle 20 cm ahead?
+    bool obstacleDetected = function_xxx(ULTRASONIC_Get, 1, 20);
+    // if (obstacleDetected)
+    // {
+    //     ultrasonicHitCount++;
+    // }
+    // else
+    // {
+    //   ultrasonicHitCount = 0;
+    // }
+
+    if (obstacleDetected) //There are obstacle 20 cm ahead?
     {
       if (first_detection)
       {
-        ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
+        Serial.println(F("First detection of obstacle ahead! Starting search..."));
+
+        StopVehicle();
         first_detection = false;
         search_cycle = 0;
         turn_count = 0;
       }
-      ApplicationFunctionSet_SmartRobotCarMotionControl(Forward, 255);
+      Serial.println(F("Found obstacle ahead!"));
+      MoveForeward(255);
     }
-    else
+    else if (!turnInProgress)
     {
+      Serial.println(F("No detection"));
       first_detection = true;
 //      ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
       if (search_cycle == 0)
       {
         if (turn_count >= 3)
         {
-          ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 120);
+         TurnByAngle(Left, 90.0f, 120);
+          DEBUG_PRINTLN(F("Turn Left 90"));
           turn_count = 0;
           search_cycle = 1;
         }
         else
         {
-          ApplicationFunctionSet_SmartRobotCarMotionControl(Right, 60);
+          TurnByAngle(Right, 30.0f, 120);
+          DEBUG_PRINTLN(F("Turn Right 30"));
           turn_count += 1;
         }
       }
       else if (search_cycle >= 1 && turn_count >= 3)
       {
-        ApplicationFunctionSet_SmartRobotCarMotionControl(Left, 240);
+        TurnByAngle(Right, 180.0f, 180);
+        DEBUG_PRINTLN(F("Turn Right 180"));
         search_cycle = 0;
         turn_count = 0;
+      }
+      else
+      {
+        TurnByAngle(Left, 30.0f, 120);
+        DEBUG_PRINTLN(F("Turn Left 30"));
+        turn_count += 1;
       }
         //       AppServo.DeviceDriverSet_Servo_control(150 /*Position_angle*/);
     }
@@ -529,6 +652,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Follow(void)
   {
     ULTRASONIC_Get = 0;
     ULTRASONIC_time = 0;
+    ultrasonicHitCount = 0;
   }
 }
 
@@ -600,6 +724,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_Standby(void)
   static uint8_t cout = 0;
   if (Application_SmartRobotCarxxx0.Functional_Mode == Standby_mode)
   {
+    clearVehicleMotion();
     ApplicationFunctionSet_SmartRobotCarMotionControl(stop_it, 0);
     if (true == is_ED) //Used to zero yaw raw data(Make sure the car is placed on a stationary surface!)
     {
@@ -636,7 +761,7 @@ void ApplicationFunctionSet::CMD_inspect_xxx0(void)
 {
   if (Application_SmartRobotCarxxx0.Functional_Mode == CMD_inspect)
   {
-    Serial.println(F("CMD_inspect"));
+    DEBUG_PRINTLN(F("CMD_inspect"));
     delay(100);
   }
 }
@@ -884,7 +1009,7 @@ void ApplicationFunctionSet::CMD_CarControlTimeLimit_xxx0(uint8_t is_CarDirectio
         {
 
 #if _is_print
-          Serial.print('{' + CommandSerialNumber + "_ok}");
+          DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
           CarControl_return = true;
         }
@@ -931,7 +1056,7 @@ void ApplicationFunctionSet::CMD_CarControlTimeLimit_xxx0(void)
         {
 
 #if _is_print
-          Serial.print('{' + CommandSerialNumber + "_ok}");
+          DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
           CarControl_return = true;
         }
@@ -1089,7 +1214,7 @@ void ApplicationFunctionSet::CMD_LightingControlTimeLimit_xxx0(uint8_t is_Lighti
         {
 
 #if _is_print
-          Serial.print('{' + CommandSerialNumber + "_ok}");
+          DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
           LightingControl_return = true;
         }
@@ -1135,7 +1260,7 @@ void ApplicationFunctionSet::CMD_LightingControlTimeLimit_xxx0(void)
         {
 
 #if _is_print
-          Serial.print('{' + CommandSerialNumber + "_ok}");
+          DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
           LightingControl_return = true;
         }
@@ -1231,13 +1356,13 @@ void ApplicationFunctionSet::CMD_UltrasoundModuleStatus_xxx0(uint8_t is_get)
     if (true == UltrasoundDetectionStatus)
     {
 #if _is_print
-      Serial.print('{' + CommandSerialNumber + "_true}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_true}");
 #endif
     }
     else
     {
 #if _is_print
-      Serial.print('{' + CommandSerialNumber + "_false}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_false}");
 #endif
     }
   }
@@ -1246,7 +1371,7 @@ void ApplicationFunctionSet::CMD_UltrasoundModuleStatus_xxx0(uint8_t is_get)
     char toString[10];
     sprintf(toString, "%d", UltrasoundData_cm);
 #if _is_print
-    Serial.print('{' + CommandSerialNumber + '_' + toString + '}');
+  DEBUG_PRINT('{' + CommandSerialNumber + '_' + toString + '}');
 #endif
   }
 }
@@ -1262,7 +1387,7 @@ void ApplicationFunctionSet::CMD_TraceModuleStatus_xxx0(uint8_t is_get)
   {
     sprintf(toString, "%d", TrackingData_L);
 #if _is_print
-    Serial.print('{' + CommandSerialNumber + '_' + toString + '}');
+  DEBUG_PRINT('{' + CommandSerialNumber + '_' + toString + '}');
 #endif
     /*
     if (true == TrackingDetectionStatus_L)
@@ -1282,7 +1407,7 @@ void ApplicationFunctionSet::CMD_TraceModuleStatus_xxx0(uint8_t is_get)
   {
     sprintf(toString, "%d", TrackingData_M);
 #if _is_print
-    Serial.print('{' + CommandSerialNumber + '_' + toString + '}');
+  DEBUG_PRINT('{' + CommandSerialNumber + '_' + toString + '}');
 #endif
     /*
     if (true == TrackingDetectionStatus_M)
@@ -1302,7 +1427,7 @@ void ApplicationFunctionSet::CMD_TraceModuleStatus_xxx0(uint8_t is_get)
   {
     sprintf(toString, "%d", TrackingData_R);
 #if _is_print
-    Serial.print('{' + CommandSerialNumber + '_' + toString + '}');
+    DEBUG_PRINT('{' + CommandSerialNumber + '_' + toString + '}');
 #endif
     /*
         if (true == TrackingDetectionStatus_R)
@@ -1493,7 +1618,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
   if (c == '}') //Data frame tail check
   {
 #if _Test_print
-    Serial.println(SerialPortData);
+  DEBUG_PRINTLN(SerialPortData);
 #endif
     // if (true == SerialPortData.equals("{f}") || true == SerialPortData.equals("{b}") || true == SerialPortData.equals("{l}") || true == SerialPortData.equals("{r}"))
     // {
@@ -1511,7 +1636,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
     SerialPortData = "";
     if (error)
     {
-      Serial.println(F("error:deserializeJson"));
+      DEBUG_PRINTLN(F("error:deserializeJson"));
     }
     else if (!error) //Check if the deserialization is successful
     {
@@ -1529,7 +1654,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         CMD_is_MotorDirection = doc["D3"];
 
 #if _is_print
-        Serial.print('{' + CommandSerialNumber + "_ok}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
 
@@ -1549,7 +1674,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         CMD_is_CarDirection = doc["D1"];
         CMD_is_CarSpeed = doc["D2"];
 #if _is_print
-        Serial.print('{' + CommandSerialNumber + "_ok}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
 
@@ -1558,7 +1683,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         CMD_is_MotorSpeed_L = doc["D1"];
         CMD_is_MotorSpeed_R = doc["D2"];
 #if _is_print
-        Serial.print('{' + CommandSerialNumber + "_ok}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
       case 5:                                                             /*<Command：N 5> */
@@ -1566,7 +1691,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         CMD_is_Servo = doc["D1"];
         CMD_is_Servo_angle = doc["D2"];
 #if _is_print
-        Serial.print('{' + CommandSerialNumber + "_ok}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
       case 7:                                                                          /*<Command：N 7> */
@@ -1591,7 +1716,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         CMD_is_LightingColorValue_G = doc["D3"];
         CMD_is_LightingColorValue_B = doc["D4"];
 #if _is_print
-        Serial.print('{' + CommandSerialNumber + "_ok}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
 
@@ -1613,13 +1738,13 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         if (true == Car_LeaveTheGround)
         {
 #if _is_print
-          Serial.print('{' + CommandSerialNumber + "_false}");
+          DEBUG_PRINT('{' + CommandSerialNumber + "_false}");
 #endif
         }
         else if (false == Car_LeaveTheGround)
         {
 #if _is_print
-          Serial.print('{' + CommandSerialNumber + "_true}");
+          DEBUG_PRINT('{' + CommandSerialNumber + "_true}");
 #endif
         }
         break;
@@ -1627,13 +1752,13 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
       case 110:                                                                                 /*<Command：N 110> */
         Application_SmartRobotCarxxx0.Functional_Mode = CMD_ClearAllFunctions_Programming_mode; /*Clear all function:Enter programming mode*/
 #if _is_print
-        Serial.print('{' + CommandSerialNumber + "_ok}");
+  DEBUG_PRINT('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
       case 100:                                                                             /*<Command：N 100> */
         Application_SmartRobotCarxxx0.Functional_Mode = CMD_ClearAllFunctions_Standby_mode; /*Clear all function:Enter standby mode*/
 #if _is_print
-        Serial.print(F("{ok}"));
+  DEBUG_PRINT(F("{ok}"));
         //Serial.print('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
@@ -1653,7 +1778,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
         }
 
 #if _is_print
-  Serial.print(F("{ok}"));
+  DEBUG_PRINT(F("{ok}"));
         //Serial.print('{' + CommandSerialNumber + "_ok}");
 #endif
         break;
@@ -1671,7 +1796,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
 
 #if _Test_print
         //Serial.print('{' + CommandSerialNumber + "_ok}");
-  Serial.print(F("{ok}"));
+  DEBUG_PRINT(F("{ok}"));
 #endif
         break;
 
@@ -1685,7 +1810,7 @@ void ApplicationFunctionSet::ApplicationFunctionSet_SerialPortDataAnalysis(void)
 
 #if _is_print
         //Serial.print('{' + CommandSerialNumber + "_ok}");
-  Serial.print(F("{ok}"));
+  DEBUG_PRINT(F("{ok}"));
 #endif
         break;
       case 102: /*<Command：N 102> :Rocker control mode command*/
@@ -1752,40 +1877,40 @@ float ax_cal, ay_cal, az_cal; // Calibrated accelerometer values
 float gx_cal, gy_cal, gz_cal; // Calibrated gyroscope values
 
 // Sensitivity scale factors
-const float accel_scale = 9.8 / 16384.0;   // Convert raw accelerometer data to m/s^2
-const float gyro_scale = 1 / 131.0; // Convert raw gyro data to rad/s
+#define ACCEL_SCALE (9.8f / 16384.0f)   // Convert raw accelerometer data to m/s^2
+#define GYRO_SCALE (1.0f / 32.8f) // Convert raw gyro data to deg/s for ±1000°/s
 
 // Calibration offsets (these will be set after calibration)
 int16_t ax_offset = 0, ay_offset = 0, az_offset = 0;
 int16_t gx_offset = 0, gy_offset = 0, gz_offset = 0;
 
 void ApplicationFunctionSet::setup() {
-  Serial.begin(9600); // Start serial communication at 115200 baud
+  Serial.begin(115200); // Start serial communication
   Wire.begin();         // Initialize I2C connection
   
-  Serial.println(F("Initializing MPU6050..."));
+  DEBUG_PRINTLN(F("Initializing MPU6050..."));
   mpu.initialize();     // Initialize MPU6050 sensor
   
   // Check if MPU6050 is connected
   if (!mpu.testConnection()) {
-    Serial.println(F("MPU6050 connection failed!"));
+    DEBUG_PRINTLN(F("MPU6050 connection failed!"));
     while (1); // Halt the program if MPU6050 is not detected
   }
-  Serial.println(F("MPU6050 successfully connected!"));
+  DEBUG_PRINTLN(F("MPU6050 successfully connected!"));
   
   // Set the desired gyroscope range
   // Options are:
   // 0: ±250°/s, 1: ±500°/s, 2: ±1000°/s, 3: ±2000°/s
-  int gyroRange = 0; // Choose the full-scale range (change this as needed)
+  int gyroRange = 2; // ±1000°/s
   mpu.setFullScaleGyroRange(gyroRange);
   int gyroRangeSet = mpu.getFullScaleGyroRange();
-  Serial.print(F("Gyroscope full-scale range set to: "));
+  DEBUG_PRINT(F("Gyroscope full-scale range set to: "));
   switch (gyroRangeSet) {
-    case 0: Serial.println(F("±250°/s")); break;
-    case 1: Serial.println(F("±500°/s")); break;
-    case 2: Serial.println(F("±1000°/s")); break;
-    case 3: Serial.println(F("±2000°/s")); break;
-    default: Serial.println(F("Unknown range!")); break;
+    case 0: DEBUG_PRINTLN(F("±250°/s")); break;
+    case 1: DEBUG_PRINTLN(F("±500°/s")); break;
+    case 2: DEBUG_PRINTLN(F("±1000°/s")); break;
+    case 3: DEBUG_PRINTLN(F("±2000°/s")); break;
+    default: DEBUG_PRINTLN(F("Unknown range!")); break;
   }
 
   // Calibrate accelerometer and gyroscope
@@ -1795,19 +1920,19 @@ void ApplicationFunctionSet::setup() {
 
 void ApplicationFunctionSet::loop() {
   // Read raw accelerometer and gyroscope data
-  static int count = 0;
-  static float angleX = 0, angleY = 0, angleZ = 0; // Angles in degrees (roll, pitch, yaw)
+  static unsigned long lastYawPrintTime = 0;
+  static float angleX = 0, angleY = 0; // Angles in degrees (roll, pitch)
 
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
   // Subtract offsets to get calibrated measurements
-  ax_cal = (ax - ax_offset) * accel_scale;
-  ay_cal = (ay - ay_offset) * accel_scale;
-  az_cal = (az - az_offset) * accel_scale;
+  ax_cal = (ax - ax_offset) * ACCEL_SCALE;
+  ay_cal = (ay - ay_offset) * ACCEL_SCALE;
+  az_cal = (az - az_offset) * ACCEL_SCALE;
   
-  gx_cal = (gx - gx_offset) * gyro_scale;
-  gy_cal = (gy - gy_offset) * gyro_scale;
-  gz_cal = (gz - gz_offset) * gyro_scale;
+  gx_cal = (gx - gx_offset) * GYRO_SCALE;
+  gy_cal = (gy - gy_offset) * GYRO_SCALE;
+  gz_cal = (gz - gz_offset) * GYRO_SCALE;
 
   unsigned long currentTime = millis();
   float dt = (currentTime - prevTime) / 1000.0; // Convert milliseconds to seconds
@@ -1816,9 +1941,9 @@ void ApplicationFunctionSet::loop() {
   // Integrate angular velocity to calculate angles
   angleX += gx_cal * dt; // Roll angle (X-axis)
   angleY += gy_cal * dt; // Pitch angle (Y-axis)
-  angleZ += gz_cal * dt; // Yaw angle (Z-axis)
+  zAngle += gz_cal * dt; // Yaw angle (Z-axis)
 
-  if (count >= 1000) 
+  if (currentTime - lastYawPrintTime >= DEBUG_PRINT_TIMER && Application_SmartRobotCarxxx0.Functional_Mode != Standby_mode)
   {
 
     // Print acceleration in m/s^2
@@ -1828,28 +1953,17 @@ void ApplicationFunctionSet::loop() {
     // Serial.print(", Z: "); Serial.println(az_cal);
 
     // Print gyroscopic rates in rad/s
-    Serial.print(F("Gyro [rad/s]: "));
-    Serial.print(F("Yaw (Z): ")); Serial.print(gz_cal);
-    Serial.print(F(", Pitch (Y): ")); Serial.print(gy_cal);
-    Serial.print(F(", Roll (X): ")); Serial.println(gx_cal);
-
-    Serial.println();
-  // Print the calculated angles
-    Serial.print(F("Angles (degrees): "));
-    Serial.print(F(", Yaw (Z): ")); Serial.println(angleZ);
-
-    count = 0;
-  }
-  else
-  {
-    count += 1;
+  //   DEBUG_PRINTLN();
+  // // Print the calculated angles
+  //   DEBUG_PRINT(F("Angles (degrees): ")); DEBUG_PRINTLN(zAngle);
+  //   lastYawPrintTime = currentTime;
   }
 }
 
 
 // Function to calibrate the accelerometer and gyroscope
 void ApplicationFunctionSet::calibrateSensor() {
-  Serial.println(F("Calibrating sensors... Please keep the MPU6050 stable."));
+  DEBUG_PRINTLN(F("Calibrating sensors... Please keep the MPU6050 stable."));
   
   int num_samples = 1000; // Number of samples to take for calibration
   long ax_sum = 0, ay_sum = 0, az_sum = 0;
@@ -1876,12 +1990,12 @@ void ApplicationFunctionSet::calibrateSensor() {
   gy_offset = gy_sum / num_samples;
   gz_offset = gz_sum / num_samples;
   
-  Serial.println(F("Calibration complete!"));
-  Serial.print(F("Offsets: "));
-  Serial.print(F("Ax: ")); Serial.print(ax_offset);
-  Serial.print(F(", Ay: ")); Serial.print(ay_offset);
-  Serial.print(F(", Az: ")); Serial.println(az_offset);
-  Serial.print(F("Gx: ")); Serial.print(gx_offset);
-  Serial.print(F(", Gy: ")); Serial.print(gy_offset);
-  Serial.print(F(", Gz: ")); Serial.println(gz_offset);
+  DEBUG_PRINTLN(F("Calibration complete!"));
+  DEBUG_PRINT(F("Offsets: "));
+  DEBUG_PRINT(F("Ax: ")); DEBUG_PRINT(ax_offset);
+  DEBUG_PRINT(F(", Ay: ")); DEBUG_PRINT(ay_offset);
+  DEBUG_PRINT(F(", Az: ")); DEBUG_PRINTLN(az_offset);
+  DEBUG_PRINT(F("Gx: ")); DEBUG_PRINT(gx_offset);
+  DEBUG_PRINT(F(", Gy: ")); DEBUG_PRINT(gy_offset);
+  DEBUG_PRINT(F(", Gz: ")); DEBUG_PRINTLN(gz_offset);
 }

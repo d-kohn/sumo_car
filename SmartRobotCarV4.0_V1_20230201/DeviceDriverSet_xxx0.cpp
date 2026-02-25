@@ -231,7 +231,7 @@ void DeviceDriverSet_ULTRASONIC::DeviceDriverSet_ULTRASONIC_Get(uint16_t *ULTRAS
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(3);
+  delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
   tempda_x = ((unsigned int)pulseIn(ECHO_PIN, HIGH) / 58);
   // *ULTRASONIC_Get = tempda_x;

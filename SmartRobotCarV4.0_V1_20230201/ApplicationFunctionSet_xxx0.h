@@ -11,6 +11,28 @@
 
 #include <Arduino.h>
 
+/*Movement Direction Control List*/
+enum SmartRobotCarMotionControl
+{
+  Forward,       //(1)
+  Backward,      //(2)
+  Left,          //(3)
+  Right,         //(4)
+  LeftForward,   //(5)
+  LeftBackward,  //(6)
+  RightForward,  //(7)
+  RightBackward, //(8)
+  stop_it        //(9)
+};               //direction方向:（1）、（2）、 （3）、（4）、（5）、（6）
+
+extern SmartRobotCarMotionControl motionDirection;
+extern float targetAngle;
+extern bool turnInProgress;
+extern uint8_t motionSpeed;
+extern volatile float zAngle;
+
+void UpdateVehicleMotion(void);
+
 class ApplicationFunctionSet
 {
 public:
@@ -29,6 +51,12 @@ public:
   void ApplicationFunctionSet_SerialPortDataAnalysis(void);
   void ApplicationFunctionSet_IRrecv(void);
   void calibrateSensor(void);
+  void ApplicationFunctionSet_UpdateVehicleMotion(void);
+  void TurnByAngle(SmartRobotCarMotionControl direction, float turnAngle, uint8_t speed);
+  void MoveForeward(uint8_t speed);
+  void StopVehicle(void);
+  void clearVehicleMotion(void);
+  unsigned long lastMotionDebugTime = 0;
 
 public: /*CMD*/
   void CMD_UltrasoundModuleStatus_xxx0(uint8_t is_get);
@@ -65,6 +93,10 @@ private:
   volatile int TrackingData_L;         //Line Tracking Module Value (Left)
   volatile int TrackingData_M;         //Line Tracking Module Value (Middle)
   volatile int TrackingData_R;         //Line Tracking Module Value (Right)
+  bool first_detection = true;
+  uint8_t turn_count = 0;
+  uint8_t search_cycle = 0;
+ 
   /*Sensor Status*/
   boolean VoltageDetectionStatus = false;
   boolean UltrasoundDetectionStatus = false;
